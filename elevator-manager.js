@@ -30,59 +30,10 @@
       elevator = this.findRandomElement(idleElevators);
       this.setIndicators(elevator, direction);
       delete elevator.idle;
-      elevator.goToFloor(fromFloor.floorNum()); // adds the floor to the end of its destination queue...
-      return;
-    }
-    var elevatorsHeadingThisWay = this.elevators.filter(filterElevatorsWhichCouldPickUp);
-    var closestElevators = elevatorsHeadingThisWay.sort(sortElevatorsByClosest);
-    if (closestElevators.length) {
-      elevator = closestElevators[0];
-    } else {
-      elevator = this.getRandomElevator();
+      elevator.goToFloor(fromFloor.floorNum());
     }
 
     function isIdle(elevator) { return !!elevator.idle; }
-    function filterElevatorsWhichCouldPickUp(elev) {
-      var momentum = elev.destinationDirection();
-      if (momentum == "stopped") {
-        return true;
-      }
-      var currentFloor = elev.currentFloor(),
-          loadFactor = elev.loadFactor();
-      if (momentum == "up") {
-        if (currentFloor < fromFloorNum) {
-          if (direction == "up") {
-            return true;
-          }
-          if (loadFactor == 0) {
-            return true;
-          }
-        }
-      }
-      if (momentum == "down") {
-        if (currentFloor < fromFloorNum) {
-          if (direction == "down") {
-            return true;
-          }
-          if (loadFactor == 0) {
-            return true;
-          }
-        }
-      }
-      return false;
-
-    }
-    function sortElevatorsByClosest(elev1, elev2) {
-      var elev1_distance = Math.abs(elev1.currentFloor() - fromFloorNum),
-          elev2_distance = Math.abs(elev2.currentFloor() - fromFloorNum);
-      if (elev1_distance < elev2_distance) {
-        return -1;
-      }
-      if (elev1_distance > elev2_distance) {
-        return 1;
-      }
-      return 0;
-    }
   },
 
   elevatorIdle: function(elevator) {
