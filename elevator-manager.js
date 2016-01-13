@@ -30,48 +30,48 @@
       elevator = this.findRandomElement(idleElevators);
       this.setIndicators(elevator, direction);
       delete elevator.idle;
-    } else {
-      var elevatorsHeadingThisWay = this.elevators.filter(function(e) {
-        if (e.destinationDirection() == "stopped") {
+      elevator.goToFloor(fromFloor.floorNum()); // adds the floor to the end of its destination queue...
+      return;
+    }
+    var elevatorsHeadingThisWay = this.elevators.filter(function(e) {
+      if (e.destinationDirection() == "stopped") {
+        return true;
+      }
+      if (e.currentFloor() < fromFloorNum && e.destinationDirection() == "up") {
+        if (direction == "up") {
           return true;
         }
-        if (e.currentFloor() < fromFloorNum && e.destinationDirection() == "up") {
-          if (direction == "up") {
-            return true;
-          }
-          if (e.loadFactor() == 0) {
-            return true;
-          }
-          return false;
-        }
-        if (e.currentFloor() > fromFloorNum && e.destinationDirection() == "down") {
-          if (direction == "down") {
-            return true;
-          }
-          if (e.loadFactor() == 0) {
-            return true;
-          }
+        if (e.loadFactor() == 0) {
+          return true;
         }
         return false;
-      });
-      var closestElevators = elevatorsHeadingThisWay.sort(function(e1, e2) {
-        var e1_floors_away = Math.abs(e1.currentFloor() - fromFloorNum),
-            e2_floors_away = Math.abs(e2.currentFloor() - fromFloorNum);
-        if (e1_floors_away < e2_floors_away) {
-          return -1;
-        }
-        if (e1_floors_away > e2_floors_away) {
-          return 1;
-        }
-        return 0;
-      });
-      if (closestElevators.length) {
-        elevator = closestElevators[0];
-      } else {
-        elevator = this.getRandomElevator();
       }
+      if (e.currentFloor() > fromFloorNum && e.destinationDirection() == "down") {
+        if (direction == "down") {
+          return true;
+        }
+        if (e.loadFactor() == 0) {
+          return true;
+        }
+      }
+      return false;
+    });
+    var closestElevators = elevatorsHeadingThisWay.sort(function(e1, e2) {
+      var e1_floors_away = Math.abs(e1.currentFloor() - fromFloorNum),
+          e2_floors_away = Math.abs(e2.currentFloor() - fromFloorNum);
+      if (e1_floors_away < e2_floors_away) {
+        return -1;
+      }
+      if (e1_floors_away > e2_floors_away) {
+        return 1;
+      }
+      return 0;
+    });
+    if (closestElevators.length) {
+      elevator = closestElevators[0];
+    } else {
+      elevator = this.getRandomElevator();
     }
-    elevator.goToFloor(fromFloor.floorNum()); // adds the floor to the end of its destination queue...
 
     function isIdle(elevator) { return !!elevator.idle; }
   },
@@ -85,7 +85,6 @@
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
     this.logStatus();
     this.requestRoute(elevator, desiredFloor);
-    elevator.goToFloor(desiredFloor);
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
@@ -137,7 +136,8 @@
   },
 
   requestRoute: function(elevator, toFloor) {
-    // TODO
+    elevator.goToFloor(toFloor);
+    // TODO don't take over an elevator, instead just register request. elevators will decide to stop when passing...
   },
 
   setIndicators: function(elevator, direction) {
