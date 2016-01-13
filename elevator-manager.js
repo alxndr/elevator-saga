@@ -1,13 +1,11 @@
 {
   init: function(elevators, floors) {
     console.clear();
+    this.pickupRequests = [];
     this.elevators = elevators;
     this.floors = floors;
-    this.doInit();
-  },
-
-  doInit: function() {
     this.floors.forEach(function(floor) {
+      this.pickupRequests[floor.floorNum()] = this.blankRequests();
       floor.on("down_button_pressed", this.floorsDownButtonPressed.bind(this, floor));
       floor.on("up_button_pressed", this.floorsUpButtonPressed.bind(this, floor));
     }, this);
@@ -19,19 +17,63 @@
     }, this);
   },
 
+  blankRequests: function() {
+    return {down: 0, up: 0};
+  },
+
   callElevator: function(direction, fromFloor) {
-    this.requestPickup(fromFloor.floorNum(), direction);
-    var elevator,
-        idleElevators = this.elevators.filter(function(elevator) { return elevator.idle; });
+    var fromFloorNum = fromFloor.floorNum(),
+        elevator,
+        idleElevators = this.elevators.filter(isIdle);
+    this.pickupRequests[fromFloorNum][direction] += 1;
     if (idleElevators.length) {
       elevator = this.findRandomElement(idleElevators);
       this.setIndicators(elevator, direction);
       delete elevator.idle;
     } else {
-      // TODO take into account caller origin & direction
-      elevator = this.getRandomElevator();
+      var elevatorsHeadingThisWay = this.elevators.filter(function(e) {
+        if (e.destinationDirection() == "stopped") {
+          return true;
+        }
+        if (e.currentFloor() < fromFloorNum && e.destinationDirection() == "up") {
+          if (direction == "up") {
+            return true;
+          }
+          if (e.loadFactor() == 0) {
+            return true;
+          }
+          return false;
+        }
+        if (e.currentFloor() > fromFloorNum && e.destinationDirection() == "down") {
+          if (direction == "down") {
+            return true;
+          }
+          if (e.loadFactor() == 0) {
+            return true;
+          }
+        }
+        return false;
+      });
+      var closestElevators = elevatorsHeadingThisWay.sort(function(e1, e2) {
+        var e1_floors_away = Math.abs(e1.currentFloor() - fromFloorNum),
+            e2_floors_away = Math.abs(e2.currentFloor() - fromFloorNum);
+        if (e1_floors_away < e2_floors_away) {
+          return -1;
+        }
+        if (e1_floors_away > e2_floors_away) {
+          return 1;
+        }
+        return 0;
+      });
+      if (closestElevators.length) {
+        elevator = closestElevators[0];
+      } else {
+        elevator = this.getRandomElevator();
+      }
     }
-    elevator.goToFloor(fromFloor.floorNum());
+    elevator.goToFloor(fromFloor.floorNum()); // adds the floor to the end of its destination queue...
+
+    function isIdle(elevator) { return !!elevator.idle; }
   },
 
   elevatorIdle: function(elevator) {
@@ -47,6 +89,9 @@
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
+    // TODO how should this work...
+    // * deciding what floor to go to. if i have passengers: What direction are we already going? if there are floors to drop people off in that direction, go to the nearest one
+    // * if no passengers, need to consult the map...
     if (floorNum == 1 && direction == "down") {
       this.setIndicators(elevator, "up");
     } else if (floorNum == this.elevators.length - 1 && direction == "up") {
@@ -89,10 +134,6 @@
     }
     var table = this.elevators.reduce(reduceIt, {});
     // console.log(table);
-  },
-
-  requestPickup: function(fromFloor, direction) {
-    // TODO replace with fuller map...
   },
 
   requestRoute: function(elevator, toFloor) {
