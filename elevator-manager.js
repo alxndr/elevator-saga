@@ -1,7 +1,6 @@
 {
   init: function(elevators, floors) {
     console.clear();
-    this.waitingPassengers = [];
     this.elevators = elevators;
     this.floors = floors;
     this.doInit();
@@ -9,7 +8,6 @@
 
   doInit: function() {
     this.floors.forEach(function(floor) {
-      this.waitingPassengers[floor.floorNum()] = this.blankWaitingPassengers();
       floor.on("down_button_pressed", this.floorsDownButtonPressed.bind(this, floor));
       floor.on("up_button_pressed", this.floorsUpButtonPressed.bind(this, floor));
     }, this);
@@ -21,17 +19,12 @@
     }, this);
   },
 
-  blankWaitingPassengers: function() {
-    return { down: 0, up: 0 };
-  },
-
   callElevator: function(direction, fromFloor) {
-    this.hasAPassenger(fromFloor.floorNum(), direction);
-    var idleElevators = this.elevators.filter(function(elevator) { return elevator.idle; }),
-        elevator;
+    this.requestPickup(fromFloor.floorNum(), direction);
+    var elevator,
+        idleElevators = this.elevators.filter(function(elevator) { return elevator.idle; });
     if (idleElevators.length) {
       elevator = this.findRandomElement(idleElevators);
-      console.debug("calling idle elevator #" + elevator.which);
       this.setIndicators(elevator, direction);
       delete elevator.idle;
     } else {
@@ -42,15 +35,14 @@
   },
 
   elevatorIdle: function(elevator) {
-    console.warn("#"+elevator.which + " idle!");
     elevator.idle = true;
     this.setIndicators(elevator, "stopped");
     this.logStatus();
   },
 
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
-    this.waitingPassengers[elevator.currentFloor()] = this.blankWaitingPassengers(); // ideally we picked everyone up...
     this.logStatus();
+    this.requestRoute(elevator, desiredFloor);
     elevator.goToFloor(desiredFloor);
   },
 
@@ -86,11 +78,6 @@
     return Math.floor(Math.random() * (max - min)) + min;
   },
 
-  hasAPassenger: function(floorNum, direction) {
-    this.waitingPassengers[floorNum] || (this.waitingPassengers[floorNum] = this.blankWaitingPassengers());
-    this.waitingPassengers[floorNum][direction] += 1;
-  },
-
   logStatus: function() {
     function reduceIt(dataSheet, elevator) {
       dataSheet["#" + elevator.which] = {
@@ -101,8 +88,15 @@
       return dataSheet;
     }
     var table = this.elevators.reduce(reduceIt, {});
-    // table.requestingPassengers = this.waitingPassengers.join(" – ");
     // console.log(table);
+  },
+
+  requestPickup: function(fromFloor, direction) {
+    // TODO replace with fuller map...
+  },
+
+  requestRoute: function(elevator, toFloor) {
+    // TODO
   },
 
   setIndicators: function(elevator, direction) {
