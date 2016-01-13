@@ -34,17 +34,7 @@
       return;
     }
     var elevatorsHeadingThisWay = this.elevators.filter(filterElevatorsWhichCouldPickUp);
-    var closestElevators = elevatorsHeadingThisWay.sort(function(e1, e2) {
-      var e1_floors_away = Math.abs(e1.currentFloor() - fromFloorNum),
-          e2_floors_away = Math.abs(e2.currentFloor() - fromFloorNum);
-      if (e1_floors_away < e2_floors_away) {
-        return -1;
-      }
-      if (e1_floors_away > e2_floors_away) {
-        return 1;
-      }
-      return 0;
-    });
+    var closestElevators = elevatorsHeadingThisWay.sort(sortElevatorsByClosest);
     if (closestElevators.length) {
       elevator = closestElevators[0];
     } else {
@@ -81,6 +71,17 @@
       }
       return false;
 
+    }
+    function sortElevatorsByClosest(elev1, elev2) {
+      var elev1_distance = Math.abs(elev1.currentFloor() - fromFloorNum),
+          elev2_distance = Math.abs(elev2.currentFloor() - fromFloorNum);
+      if (elev1_distance < elev2_distance) {
+        return -1;
+      }
+      if (elev1_distance > elev2_distance) {
+        return 1;
+      }
+      return 0;
     }
   },
 
