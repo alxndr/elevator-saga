@@ -25,21 +25,26 @@
     return { down: 0, up: 0 };
   },
 
-  callElevator: function() {
-    // return an idle elevator if there is one, otherwise a random one
-    // TODO take into account caller origin & direction
-    var idleElevators = this.elevators.filter(function(elevator) { return elevator.idle; });
+  callElevator: function(direction, fromFloor) {
+    this.hasAPassenger(fromFloor.floorNum(), direction);
+    var idleElevators = this.elevators.filter(function(elevator) { return elevator.idle; }),
+        elevator;
     if (idleElevators.length) {
-      var elevator = this.findRandomElement(idleElevators);
+      elevator = this.findRandomElement(idleElevators);
+      console.debug("calling idle elevator #" + elevator.which);
+      this.setIndicators(elevator, direction);
       delete elevator.idle;
-      return elevator;
+    } else {
+      // TODO take into account caller origin & direction
+      elevator = this.getRandomElevator();
     }
-    return this.getRandomElevator();
+    elevator.goToFloor(fromFloor.floorNum());
   },
 
   elevatorIdle: function(elevator) {
     console.warn("#"+elevator.which + " idle!");
     elevator.idle = true;
+    this.setIndicators(elevator, "stopped");
     this.logStatus();
   },
 
@@ -50,6 +55,11 @@
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
+    if (floorNum == 1 && direction == "down") {
+      this.setIndicators(elevator, "up");
+    } else if (floorNum == this.elevators.length - 1 && direction == "up") {
+      this.setIndicators(elevator, "down");
+    }
   },
 
   findRandomElement: function(arr) {
@@ -57,13 +67,11 @@
   },
 
   floorsDownButtonPressed: function(floor) {
-    this.hasAPassenger(floor.floorNum(), "down");
-    this.callElevator().goToFloor(floor.floorNum());
+    this.callElevator("down", floor);
   },
 
   floorsUpButtonPressed: function(floor) {
-    this.hasAPassenger(floor.floorNum(), "up");
-    this.callElevator().goToFloor(floor.floorNum());
+    this.callElevator("up", floor);
   },
 
   getRandomElevator: function() {
@@ -95,6 +103,11 @@
     var table = this.elevators.reduce(reduceIt, {});
     // table.requestingPassengers = this.waitingPassengers.join(" – ");
     // console.log(table);
+  },
+
+  setIndicators: function(elevator, direction) {
+    elevator.goingDownIndicator(direction == "down");
+    elevator.goingUpIndicator(direction == "up");
   },
 
   update: function(dt, elevators, floors) {}
