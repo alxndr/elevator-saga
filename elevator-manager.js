@@ -48,8 +48,13 @@
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
-    // TODO how should this work...
-    // * deciding what floor to go to. if i have passengers: What direction are we already going? if there are floors to drop people off in that direction, go to the nearest one
+    if (elevator.loadFactor() == 0) {
+      // if there are folks wanting to go my direction, stop and pick em up
+      console.log("#"+elevator.which, "empty, passing floor " + floorNum, this.formatPickupRequests());
+    } else {
+      // console.log("#"+elevator.which, "not empty (" + elevator.loadFactor() + "), passing floor " + floorNum);
+    }
+    // * if i have passengers: What direction are we already going? if there are floors to drop people off in that direction, go to the nearest one
     // * if no passengers, need to consult the map...
     if (floorNum == 1 && direction == "down") {
       this.setIndicators(elevator, "up");
@@ -68,6 +73,16 @@
 
   floorsUpButtonPressed: function(floor) {
     this.callElevator("up", floor);
+  },
+
+  formatPickupRequests: function() {
+    var numFloors = this.floors.length;
+    return this.pickupRequests.
+      reverse().
+      map(function(pickupRequest, reversedFloorNum) {
+        return "floor "+(numFloors-reversedFloorNum)+": "+pickupRequest.down+" going down, " + pickupRequest.up + " going up";
+      }).
+      join("\n");
   },
 
   getRandomElevator: function() {
