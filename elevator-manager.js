@@ -33,29 +33,7 @@
       elevator.goToFloor(fromFloor.floorNum()); // adds the floor to the end of its destination queue...
       return;
     }
-    var elevatorsHeadingThisWay = this.elevators.filter(function(e) {
-      if (e.destinationDirection() == "stopped") {
-        return true;
-      }
-      if (e.currentFloor() < fromFloorNum && e.destinationDirection() == "up") {
-        if (direction == "up") {
-          return true;
-        }
-        if (e.loadFactor() == 0) {
-          return true;
-        }
-        return false;
-      }
-      if (e.currentFloor() > fromFloorNum && e.destinationDirection() == "down") {
-        if (direction == "down") {
-          return true;
-        }
-        if (e.loadFactor() == 0) {
-          return true;
-        }
-      }
-      return false;
-    });
+    var elevatorsHeadingThisWay = this.elevators.filter(filterElevatorsWhichCouldPickUp);
     var closestElevators = elevatorsHeadingThisWay.sort(function(e1, e2) {
       var e1_floors_away = Math.abs(e1.currentFloor() - fromFloorNum),
           e2_floors_away = Math.abs(e2.currentFloor() - fromFloorNum);
@@ -74,6 +52,36 @@
     }
 
     function isIdle(elevator) { return !!elevator.idle; }
+    function filterElevatorsWhichCouldPickUp(elev) {
+      var momentum = elev.destinationDirection();
+      if (momentum == "stopped") {
+        return true;
+      }
+      var currentFloor = elev.currentFloor(),
+          loadFactor = elev.loadFactor();
+      if (momentum == "up") {
+        if (currentFloor < fromFloorNum) {
+          if (direction == "up") {
+            return true;
+          }
+          if (loadFactor == 0) {
+            return true;
+          }
+        }
+      }
+      if (momentum == "down") {
+        if (currentFloor < fromFloorNum) {
+          if (direction == "down") {
+            return true;
+          }
+          if (loadFactor == 0) {
+            return true;
+          }
+        }
+      }
+      return false;
+
+    }
   },
 
   elevatorIdle: function(elevator) {
