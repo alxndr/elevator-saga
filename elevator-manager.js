@@ -8,14 +8,11 @@
   },
 
   doInit: function() {
-    console.debug("init", this.elevators, this.floors);
-
     this.floors.forEach(function(floor) {
       this.waitingPassengers[floor.floorNum()] = this.blankWaitingPassengers();
       floor.on("down_button_pressed", this.floorsDownButtonPressed.bind(this, floor));
       floor.on("up_button_pressed", this.floorsUpButtonPressed.bind(this, floor));
     }, this);
-
     this.elevators.forEach(function(elevator, index) {
       elevator.which = index;
       elevator.on("floor_button_pressed", this.elevatorsFloorButtonPressed.bind(this, elevator));
@@ -48,31 +45,12 @@
 
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
     this.waitingPassengers[elevator.currentFloor()] = this.blankWaitingPassengers(); // ideally we picked everyone up...
-    console.log("#"+elevator.which, "pressed", {to: desiredFloor, loadFactor: elevator.loadFactor()});
     this.logStatus();
     elevator.goToFloor(desiredFloor);
   },
 
-  elevatorPassingFloor: function(elevator, floorNum, direction) {/*
-    if (elevator.getPressedFloors().indexOf(floorNum) > -1) {
-      console.warn("#" + elevator.which, "get out", {at: floorNum, loadFactor: elevator.loadFactor()});
-      elevator.goToFloor(floorNum, true);
-      return;
-    }
-    if (elevator.loadFactor() > 0.85) {
-      console.warn("#"+elevator.which, "too full", {loadFactor: elevator.loadFactor()});
-      // TODO determine closest floor to go to?
-      elevator.goToFloor(this.findRandomElement(elevator.getPressedFloors()), true);
-      return;
-    }
-    if (elevator.loadFactor() < 0.5 && this.waitingPassengers[floorNum][direction]) {
-      console.warn("#" + elevator.which, "loading up", {loadFactor: elevator.loadFactor()});
-      elevator.goToFloor(floorNum, true);
-      return;
-    }
-    console.log("#" + elevator.which, "passing floor", floorNum);
-    this.logStatus();
-  */},
+  elevatorPassingFloor: function(elevator, floorNum, direction) {
+  },
 
   findRandomElement: function(arr) {
     return arr[this.getRandomInt(0, arr.length)];
@@ -119,7 +97,5 @@
     // console.log(table);
   },
 
-  update: function(dt, elevators, floors) {
-    // ?
-  }
+  update: function(dt, elevators, floors) {}
 }
