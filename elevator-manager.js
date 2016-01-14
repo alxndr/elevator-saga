@@ -17,17 +17,13 @@
     }, this);
   },
 
-  blankRequests: function() {
-    return {down: 0, up: 0, enRoute: {down: false, up: false}};
-  },
-
   callElevator: function(direction, fromFloor) {
     var fromFloorNum = fromFloor.floorNum(),
         elevator,
         idleElevators = this.elevators.filter(isIdle);
     this.pickupRequests[fromFloorNum][direction] += 1;
     if (idleElevators.length) {
-      elevator = this.findRandomElement(idleElevators);
+      elevator = this._randomElementFromArray(idleElevators);
       this.setIndicators(elevator, direction);
       delete elevator.idle;
       elevator.goToFloor(fromFloorNum);
@@ -37,17 +33,6 @@
     this.pickupRequests[fromFloor.floorNum()][direction] += 1;
 
     function isIdle(elevator) { return !!elevator.idle; }
-  },
-
-  charFor: function(term) {
-    switch(term) {
-      case "down":
-        return "↘";
-      case "up":
-        return "↗";
-      default:
-        return term;
-    }
   },
 
   elevatorIdle: function(elevator) {
@@ -87,26 +72,15 @@
   },
 
   reorderQueue: function(queue, currentFloor, direction) {
-    var parts = this.partition(queue, function(floor) { return (floor < currentFloor) ? 0 : 1; }),
-        belowFloors = parts[0].sort(this._ASC),
-        aboveFloors = parts[1].sort(this._DESC);
+    var parts = this._partition(queue, function(floor) { return (floor < currentFloor) ? 0 : 1; }),
+        belowFloors = parts[0].sort(this.ASC),
+        aboveFloors = parts[1].sort(this.DESC);
     if (direction == "up") {
       return aboveFloors.concat(belowFloors);
     } else if (direction == "down") {
       return belowFloors.concat(aboveFloors);
     }
     return null;
-  },
-
-  partition: function(array, fn) {
-    return array.reduce(function(results, element) {
-      if (fn(element)) {
-        results[0].push(element);
-      } else {
-        results[1].push(element);
-      }
-      return results;
-    }, [[], []]);
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
@@ -128,16 +102,61 @@
     }
   },
 
-  findRandomElement: function(arr) {
-    return arr[this.getRandomInt(0, arr.length)];
-  },
-
   floorsDownButtonPressed: function(floor) {
     this.callElevator("down", floor);
   },
 
   floorsUpButtonPressed: function(floor) {
     this.callElevator("up", floor);
+  },
+
+  getRandomElevator: function() {
+    return this._randomElementFromArray(this.elevators);
+  },
+
+  getRandomFloor: function() {
+    return this._randomIntInRange(0, this.floors.length);
+  },
+
+  requestRoute: function(elevator, toFloor) {
+    elevator.goToFloor(toFloor);
+    // TODO don't take over an elevator, instead just register request. elevators will decide to stop when passing...
+  },
+
+  setIndicators: function(elevator, direction) {
+    elevator.goingDownIndicator(direction == "down");
+    elevator.goingUpIndicator(direction == "up");
+  },
+
+  update: function(dt, elevators, floors) {},
+
+  // "private"
+
+  _ASC: function (a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  },
+
+  _DESC: function (a, b) {
+    if (a > b) return -1;
+    if (a < b) return 1;
+    return 0;
+  },
+
+  blankRequests: function() {
+    return {down: 0, up: 0, enRoute: {down: false, up: false}};
+  },
+
+  charFor: function(term) {
+    switch(term) {
+    case "down":
+      return "↘";
+    case "up":
+      return "↗";
+    default:
+      return term;
+    }
   },
 
   formatPickupRequests: function() {
@@ -148,18 +167,6 @@
         return "floor "+(numFloors-reversedFloorNum-1)+": "+pickupRequest.down+"↘ " + pickupRequest.up + "↗";
       }).
       join("\n");
-  },
-
-  getRandomElevator: function() {
-    return this.findRandomElement(this.elevators);
-  },
-
-  getRandomFloor: function() {
-    return this.getRandomInt(0, this.floors.length);
-  },
-
-  getRandomInt: function (min, max) {
-    return Math.floor(Math.random() * (max - min)) + min;
   },
 
   logStatus: function() {
@@ -180,27 +187,23 @@
     console.log(this.pickupRequests.reduce(reduceThatToo, {}));
   },
 
-  requestRoute: function(elevator, toFloor) {
-    elevator.goToFloor(toFloor);
-    // TODO don't take over an elevator, instead just register request. elevators will decide to stop when passing...
+  _partition: function(array, fn) {
+    return array.reduce(function(results, element) {
+      if (fn(element)) {
+        results[0].push(element);
+      } else {
+        results[1].push(element);
+      }
+      return results;
+    }, [[], []]);
   },
 
-  setIndicators: function(elevator, direction) {
-    elevator.goingDownIndicator(direction == "down");
-    elevator.goingUpIndicator(direction == "up");
+  _randomElementFromArray: function(arr) {
+    return arr[this._randomIntInRange(0, arr.length)];
   },
 
-  update: function(dt, elevators, floors) {},
-
-  _ASC: function (a, b) {
-    if (a < b) return -1;
-    if (a > b) return 1;
-    return 0;
-  },
-  _DESC: function (a, b) {
-    if (a > b) return -1;
-    if (a < b) return 1;
-    return 0;
+  _randomIntInRange: function (min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
   }
 
 }
