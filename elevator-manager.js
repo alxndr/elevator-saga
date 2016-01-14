@@ -18,7 +18,7 @@
   },
 
   blankRequests: function() {
-    return {down: 0, up: 0};
+    return {down: 0, up: 0, enRoute: {down: false, up: false}};
   },
 
   callElevator: function(direction, fromFloor) {
@@ -30,8 +30,11 @@
       elevator = this.findRandomElement(idleElevators);
       this.setIndicators(elevator, direction);
       delete elevator.idle;
-      elevator.goToFloor(fromFloor.floorNum());
+      elevator.goToFloor(fromFloorNum);
+      return;
     }
+
+    this.pickupRequests[fromFloor.floorNum()][direction] += 1;
 
     function isIdle(elevator) { return !!elevator.idle; }
   },
@@ -43,23 +46,22 @@
   },
 
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
-    this.logStatus();
     this.requestRoute(elevator, desiredFloor);
+    this.logStatus();
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
-    if (elevator.loadFactor() == 0) {
-      // if there are folks wanting to go my direction, stop and pick em up
-      console.log("#"+elevator.which, "empty, passing floor " + floorNum, this.formatPickupRequests());
-    } else {
-      // console.log("#"+elevator.which, "not empty (" + elevator.loadFactor() + "), passing floor " + floorNum);
-    }
-    // * if i have passengers: What direction are we already going? if there are floors to drop people off in that direction, go to the nearest one
-    // * if no passengers, need to consult the map...
     if (floorNum == 1 && direction == "down") {
       this.setIndicators(elevator, "up");
     } else if (floorNum == this.elevators.length - 1 && direction == "up") {
       this.setIndicators(elevator, "down");
+    }
+
+    var loadFactor = elevator.loadFactor();
+
+    if (loadFactor < 0.7 && this.pickupRequests[floorNum][direction] && !this.pickupRequests[floorNum].enRoute[direction]) {
+      this.pickupRequests[floorNum].enRoute[direction] = true;
+      elevator.goToFloor(floorNum, true);
     }
   },
 
@@ -80,7 +82,7 @@
     return this.pickupRequests.
       reverse().
       map(function(pickupRequest, reversedFloorNum) {
-        return "floor "+(numFloors-reversedFloorNum)+": "+pickupRequest.down+" going down, " + pickupRequest.up + " going up";
+        return "floor "+(numFloors-reversedFloorNum-1)+": "+pickupRequest.down+"↘ " + pickupRequest.up + "↗";
       }).
       join("\n");
   },
