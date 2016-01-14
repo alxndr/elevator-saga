@@ -39,19 +39,79 @@
     function isIdle(elevator) { return !!elevator.idle; }
   },
 
+  charFor: function(term) {
+    switch(term) {
+      case "down":
+        return "↘";
+      case "up":
+        return "↗";
+      default:
+        return term;
+    }
+  },
+
   elevatorIdle: function(elevator) {
     elevator.idle = true;
-    this.setIndicators(elevator, "stopped");
-    this.logStatus();
+    var currentFloor = elevator.currentFloor();
+    if (this.pickupRequests[currentFloor].down && !this.pickupRequests[currentFloor].enRoute.down) {
+      this.setIndicators(elevator, "down");
+      this.pickupRequests[currentFloor].down = 0;
+      this.pickupRequests[currentFloor].enRoute.down = false;
+      return;
+    }
+    if (this.pickupRequests[currentFloor].up && !this.pickupRequests[currentFloor].enRoute.up) {
+      this.setIndicators(elevator, "up");
+      this.pickupRequests[currentFloor].up = 0;
+      this.pickupRequests[currentFloor].enRoute.up = false;
+      return;
+    }
+    // this.logStatus();
   },
 
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
     this.requestRoute(elevator, desiredFloor);
-    this.logStatus();
+    var direction,
+        currentFloor = elevator.currentFloor();
+    if (currentFloor < desiredFloor) {
+      direction = "up";
+    } else if (currentFloor > desiredFloor) {
+      direction = "down";
+    }
+    this.pickupRequests[currentFloor].enRoute[direction] = false; // we've been picked up
+    var reorderedQueue = this.reorderQueue(elevator.destinationQueue, currentFloor, direction);
+    if (elevator.destinationQueue.toString() != reorderedQueue.toString()) {
+      elevator.destinationQueue = reorderedQueue;
+      elevator.checkDestinationQueue();
+    }
+    // TODO now is where we want to set our indicators...
+  },
+
+  reorderQueue: function(queue, currentFloor, direction) {
+    var parts = this.partition(queue, function(floor) { return (floor < currentFloor) ? 0 : 1; }),
+        belowFloors = parts[0].sort(this._ASC),
+        aboveFloors = parts[1].sort(this._DESC);
+    if (direction == "up") {
+      return aboveFloors.concat(belowFloors);
+    } else if (direction == "down") {
+      return belowFloors.concat(aboveFloors);
+    }
+    return null;
+  },
+
+  partition: function(array, fn) {
+    return array.reduce(function(results, element) {
+      if (fn(element)) {
+        results[0].push(element);
+      } else {
+        results[1].push(element);
+      }
+      return results;
+    }, [[], []]);
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
     if (floorNum == 1 && direction == "down") {
+      // this currently only works for 4 floors or more... how to indicate down when having stopped on 1 and then going down?
       this.setIndicators(elevator, "up");
     } else if (floorNum == this.elevators.length - 1 && direction == "up") {
       this.setIndicators(elevator, "down");
@@ -59,9 +119,12 @@
 
     var loadFactor = elevator.loadFactor();
 
-    if (loadFactor < 0.7 && this.pickupRequests[floorNum][direction] && !this.pickupRequests[floorNum].enRoute[direction]) {
-      this.pickupRequests[floorNum].enRoute[direction] = true;
-      elevator.goToFloor(floorNum, true);
+    // if there are folks wanting to go my direction, stop and pick em up... if another elevator isn't already en route
+    if (this.pickupRequests[floorNum][direction] && !this.pickupRequests[floorNum].enRoute[direction]) {
+      if (loadFactor < 0.7) {
+        this.pickupRequests[floorNum].enRoute[direction] = true;
+        elevator.goToFloor(floorNum, true);
+      }
     }
   },
 
@@ -108,8 +171,13 @@
       };
       return dataSheet;
     }
-    var table = this.elevators.reduce(reduceIt, {});
-    // console.log(table);
+    console.log(this.elevators.reduce(reduceIt, {}));
+
+    function reduceThatToo(dataSheet, pickupRequest, floorNum) {
+      dataSheet["#" + floorNum] = pickupRequest.down+"↘ " + pickupRequest.up + "↗";
+      return dataSheet;
+    }
+    console.log(this.pickupRequests.reduce(reduceThatToo, {}));
   },
 
   requestRoute: function(elevator, toFloor) {
@@ -122,5 +190,17 @@
     elevator.goingUpIndicator(direction == "up");
   },
 
-  update: function(dt, elevators, floors) {}
+  update: function(dt, elevators, floors) {},
+
+  _ASC: function (a, b) {
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+  },
+  _DESC: function (a, b) {
+    if (a > b) return -1;
+    if (a < b) return 1;
+    return 0;
+  }
+
 }
