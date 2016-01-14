@@ -38,13 +38,13 @@
   elevatorIdle: function(elevator) {
     elevator.idle = true;
     var currentFloor = elevator.currentFloor();
-    if (this.pickupRequests[currentFloor].down && !this.pickupRequests[currentFloor].enRoute.down) {
+    if (this.pickupRequests[currentFloor].down) { // && !this.pickupRequests[currentFloor].enRoute.down) {
       this.setIndicators(elevator, "down");
       this.pickupRequests[currentFloor].down = 0;
       this.pickupRequests[currentFloor].enRoute.down = false;
       return;
     }
-    if (this.pickupRequests[currentFloor].up && !this.pickupRequests[currentFloor].enRoute.up) {
+    if (this.pickupRequests[currentFloor].up) { // && !this.pickupRequests[currentFloor].enRoute.up) {
       this.setIndicators(elevator, "up");
       this.pickupRequests[currentFloor].up = 0;
       this.pickupRequests[currentFloor].enRoute.up = false;
@@ -52,6 +52,11 @@
     }
     // this.logStatus();
   },
+
+  // TODO...
+  // - rip out the enRoute thing
+  // - make cars stop at floors more "generously"...
+  // - sometimes a car has a good-looking route (trying to pick folks up?), but is showing the wrong indicator, so no one gets on...
 
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
     this.requestRoute(elevator, desiredFloor);
@@ -94,9 +99,9 @@
     var loadFactor = elevator.loadFactor();
 
     // if there are folks wanting to go my direction, stop and pick em up... if another elevator isn't already en route
-    if (this.pickupRequests[floorNum][direction] && !this.pickupRequests[floorNum].enRoute[direction]) {
+    if (this.pickupRequests[floorNum][direction]) { // && !this.pickupRequests[floorNum].enRoute[direction]) {
       if (loadFactor < 0.7) {
-        this.pickupRequests[floorNum].enRoute[direction] = true;
+        // this.pickupRequests[floorNum].enRoute[direction] = true;
         elevator.goToFloor(floorNum, true);
       }
     }
