@@ -38,23 +38,20 @@
   elevatorIdle: function(elevator) {
     elevator.idle = true;
     var currentFloor = elevator.currentFloor();
-    if (this.pickupRequests[currentFloor].down) { // && !this.pickupRequests[currentFloor].enRoute.down) {
+    if (this.pickupRequests[currentFloor].down) {
       this.setIndicators(elevator, "down");
       this.pickupRequests[currentFloor].down = 0;
-      this.pickupRequests[currentFloor].enRoute.down = false;
       return;
     }
-    if (this.pickupRequests[currentFloor].up) { // && !this.pickupRequests[currentFloor].enRoute.up) {
+    if (this.pickupRequests[currentFloor].up) {
       this.setIndicators(elevator, "up");
       this.pickupRequests[currentFloor].up = 0;
-      this.pickupRequests[currentFloor].enRoute.up = false;
       return;
     }
     // this.logStatus();
   },
 
   // TODO...
-  // - rip out the enRoute thing
   // - make cars stop at floors more "generously"...
   // - sometimes a car has a good-looking route (trying to pick folks up?), but is showing the wrong indicator, so no one gets on...
 
@@ -67,7 +64,6 @@
     } else if (currentFloor > desiredFloor) {
       direction = "down";
     }
-    this.pickupRequests[currentFloor].enRoute[direction] = false; // we've been picked up
     var reorderedQueue = this.reorderQueue(elevator.destinationQueue, currentFloor, direction);
     if (elevator.destinationQueue.toString() != reorderedQueue.toString()) {
       elevator.destinationQueue = reorderedQueue;
@@ -99,9 +95,8 @@
     var loadFactor = elevator.loadFactor();
 
     // if there are folks wanting to go my direction, stop and pick em up... if another elevator isn't already en route
-    if (this.pickupRequests[floorNum][direction]) { // && !this.pickupRequests[floorNum].enRoute[direction]) {
+    if (this.pickupRequests[floorNum][direction]) {
       if (loadFactor < 0.7) {
-        // this.pickupRequests[floorNum].enRoute[direction] = true;
         elevator.goToFloor(floorNum, true);
       }
     }
@@ -150,7 +145,7 @@
   },
 
   blankRequests: function() {
-    return {down: 0, up: 0, enRoute: {down: false, up: false}};
+    return {down: 0, up: 0};
   },
 
   charFor: function(term) {
