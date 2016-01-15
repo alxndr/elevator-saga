@@ -24,7 +24,7 @@
     this.pickupRequests[fromFloorNum][direction] += 1;
     if (idleElevators.length) {
       elevator = this._randomElementFromArray(idleElevators);
-      this.setIndicators(elevator, direction);
+      this.setIndicator(elevator, direction);
       delete elevator.idle;
       elevator.goToFloor(fromFloorNum);
       return;
@@ -39,37 +39,36 @@
     elevator.idle = true;
     var currentFloor = elevator.currentFloor();
     if (this.pickupRequests[currentFloor].down) {
-      this.setIndicators(elevator, "down");
+      this.setIndicator(elevator, "down");
       this.pickupRequests[currentFloor].down = 0;
       return;
     }
     if (this.pickupRequests[currentFloor].up) {
-      this.setIndicators(elevator, "up");
+      this.setIndicator(elevator, "up");
       this.pickupRequests[currentFloor].up = 0;
       return;
     }
-    // this.logStatus();
+    this.setIndicatorsBoth(elevator, true);
   },
 
-  // TODO...
-  // - make cars stop at floors more "generously"...
-  // - sometimes a car has a good-looking route (trying to pick folks up?), but is showing the wrong indicator, so no one gets on...
-
   elevatorsFloorButtonPressed: function(elevator, desiredFloor) {
-    this.requestRoute(elevator, desiredFloor);
+    elevator.goToFloor(desiredFloor);
+
     var direction,
         currentFloor = elevator.currentFloor();
-    if (currentFloor < desiredFloor) {
-      direction = "up";
-    } else if (currentFloor > desiredFloor) {
-      direction = "down";
+
+    if (elevator.which==3)
+      console.log("#"+elevator.which, "momentum..." + elevator.momentum);
+
+    if (elevator.momentum) {
+      // re-evaluate what we're doing based on where we need to go
+      var reorderedQueue = this.reorderQueue(elevator.destinationQueue, currentFloor, elevator.momentum);
+
+      if (elevator.destinationQueue.toString() != reorderedQueue.toString()) {
+        elevator.destinationQueue = reorderedQueue;
+        elevator.checkDestinationQueue();
+      }
     }
-    var reorderedQueue = this.reorderQueue(elevator.destinationQueue, currentFloor, direction);
-    if (elevator.destinationQueue.toString() != reorderedQueue.toString()) {
-      elevator.destinationQueue = reorderedQueue;
-      elevator.checkDestinationQueue();
-    }
-    // TODO now is where we want to set our indicators...
   },
 
   reorderQueue: function(queue, currentFloor, direction) {
@@ -85,21 +84,31 @@
   },
 
   elevatorPassingFloor: function(elevator, floorNum, direction) {
-    if (floorNum == 1 && direction == "down") {
-      // this currently only works for 4 floors or more... how to indicate down when having stopped on 1 and then going down?
-      this.setIndicators(elevator, "up");
-    } else if (floorNum == this.elevators.length - 1 && direction == "up") {
-      this.setIndicators(elevator, "down");
-    }
+    // elevator.momentum = direction;
 
-    var loadFactor = elevator.loadFactor();
+    // if (floorNum == 1 && direction == "down") {
+    //   // this currently only works for 4 floors or more... how to indicate down when having stopped on 1 and then going down?
+    //   this.setIndicator(elevator, "up");
+    // } else if (floorNum == this.elevators.length - 1 && direction == "up") {
+    //   this.setIndicator(elevator, "down");
+    // }
 
-    // if there are folks wanting to go my direction, stop and pick em up... if another elevator isn't already en route
-    if (this.pickupRequests[floorNum][direction]) {
-      if (loadFactor < 0.7) {
-        elevator.goToFloor(floorNum, true);
-      }
-    }
+    // var loadFactor = elevator.loadFactor();
+
+    // // if there are folks wanting to go my direction, stop and pick em up... if another elevator isn't already en route
+    // if (this.pickupRequests[floorNum][direction]) {
+    //   if (loadFactor < 0.7) {
+    //     elevator.goToFloor(floorNum, true);
+    //   }
+    // }
+
+
+    /*
+     rethinking...
+     if passingFloor isn't fired, we're stopping anyway at a floor one away. but we don't reinforce directions: could be zigzagging...
+       '-> what would it look like to trigger this repeatedly? what do we want to happen?
+     if it is fired: we get a read on momentum. can inspect requests for the to-be-passed floor in our momentum, and stop for them. then reorder q
+     */
   },
 
   floorsDownButtonPressed: function(floor) {
@@ -118,14 +127,14 @@
     return this._randomIntInRange(0, this.floors.length);
   },
 
-  requestRoute: function(elevator, toFloor) {
-    elevator.goToFloor(toFloor);
-    // TODO don't take over an elevator, instead just register request. elevators will decide to stop when passing...
-  },
-
-  setIndicators: function(elevator, direction) {
+  setIndicator: function(elevator, direction) {
     elevator.goingDownIndicator(direction == "down");
     elevator.goingUpIndicator(direction == "up");
+  },
+
+  setIndicatorsBoth: function(elevator, value) {
+    elevator.goingDownIndicator(value);
+    elevator.goingUpIndicator(value);
   },
 
   update: function(dt, elevators, floors) {},
